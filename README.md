@@ -1,67 +1,65 @@
-# Cyberpunk Multiplayer
+# POC-CyberpunkRP-engine
 
-**CyberpunkMP** is a multiplayer mod for Cyberpunk 2077, created by Tilted 
-Phoques SRL. This mod brings multiplayer functionality to the game, allowing 
-players to synchronize their appearances, equipment, movements, and basic 
-animations seamlessly. Additionally, vehicles and their passengers are fully 
-synchronized, enabling cooperative or competitive experiences involving the 
-game's dynamic vehicular systems.
+Fork public de [CyberpunkMP](https://github.com/tiltedphoques/CyberpunkMP), le moteur multijoueur pour Cyberpunk 2077 créé par **Tilted Phoques SRL**.
 
-CyberpunkMP also includes powerful tools for developers. We provide a .NET SDK 
-for creating server-side plugins and support client-side plugins through an 
-exposed Redscript SDK. The mod features a robust Remote Procedure Call (RPC) 
-system, allowing plugins to invoke server-side functions from the client and 
-vice versa. This system is completely automatic, requiring no additional code 
-to handle RPC functionality.
+> **Statut : preuve de concept.** Le moteur d'origine cible le patch 2.2 du jeu et ne démarre plus sur les versions actuelles. Le premier chantier de ce fork est son portage.
 
-## Building
+Ce dépôt est le moteur du projet POC-CyberpunkRP, un serveur de roleplay francophone. Il contient **uniquement** les modifications du moteur, publiées comme l'exige sa licence. Le reste du projet (backend, plugins, launcher, voix) vit dans un dépôt séparé et utilise ce moteur à travers ses releases et son SDK.
 
-### Requirements
-- [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/)
+## Ce que fait CyberpunkMP
+
+D'après sa documentation d'origine :
+
+- synchronisation de l'apparence, de l'équipement, des déplacements et des animations de base des joueurs ;
+- synchronisation complète des véhicules et de leurs passagers ;
+- SDK .NET pour écrire des plugins côté serveur, SDK Redscript pour les plugins côté client ;
+- appels de procédure distants (RPC) automatiques entre plugins client et serveur ;
+- serveur dédié, utilisable en Docker.
+
+## Ce que ce fork ajoute
+
+Voir la [feuille de route](docs/ROADMAP.md) et le [cahier des charges du moteur](docs/fonctionnel/cahier-des-charges.md). En priorité :
+
+1. portage sur le patch 2.5 de Cyberpunk 2077 ;
+2. limitation de débit réseau côté serveur ;
+3. extension du SDK serveur pour les besoins d'un serveur RP ;
+4. évaluation de la synchronisation du combat, des PNJ et des objets du monde ;
+5. releases automatisées : binaires client, serveur et SDK.
+
+## Construire
+
+Prérequis du projet d'origine :
+
+- [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) (sur Windows, SDK Windows inférieur à 10.0.26100.0)
 - [xmake](https://github.com/xmake-io/xmake/releases)
 - [git](https://git-scm.com/downloads)
 
-### Build
-1. Navigate to the repository using a command prompt.
-2. Check out the correct branch/tag if you're not working against main
-3. Run `git submodule update --init` to pull in vendored dependencies
-4. Run `xmake -y` (add `-v` for verbose output)
+```sh
+git submodule update --init
+xmake -y
+```
 
-### Visual Studio
+Serveur en Docker :
 
-If you want visual studio projects execute `xmake project -k vsxmake` and you 
-will find the sln in the newly created `vsxmake` folder.
+```sh
+docker build . -t cyberpunkmp
+docker run -p 11778:11778 -v $(pwd)/config:/app/config -v $(pwd)/plugins:/app/plugins cyberpunkmp
+```
 
-In addition, if you want to debug the project directly from with Visual Studio
-you can set the game path `xmake f --game="C:/.../Cyberpunk2077.exe"`. In Visual
-Studio you will then have a project named `Cyberpunk2077`, debug this target in
-`Debug` only, it will not work in other modes.
+Côté joueur, le moteur s'appuie sur [RED4ext](https://github.com/WopsS/RED4ext), [Cyber Engine Tweaks](https://github.com/maximegmd/CyberEngineTweaks), [redscript](https://github.com/jac3km4/redscript), [ArchiveXL](https://github.com/psiberx/cp2077-archive-xl), [TweakXL](https://github.com/psiberx/cp2077-tweak-xl), [Codeware](https://github.com/psiberx/cp2077-codeware) et [Input Loader](https://github.com/jackhumbert/cyberpunk2077-input-loader). Les versions exactes compatibles seront fixées par le portage.
 
-> [!IMPORTANT]
-> On Windows, you'll need to use Windows SDK **below** v10.0.26100.0. An issue
-> is currently breaking the build due to package `protobuf-cpp`.
+## Contribuer
 
-### Additional configuration / troubleshooting
+- Une modification par pull request, décrite et testée.
+- Ce dépôt ne contient aucune logique métier de serveur RP : elle appartient aux plugins.
+- Les contributions sont publiées sous la licence ci-dessous.
 
-- [RED4ext](https://github.com/WopsS/RED4ext/releases)
-- [CyberEngineTweaks](https://github.com/maximegmd/CyberEngineTweaks/releases)
-- [Redscript](https://github.com/jac3km4/redscript/releases/)
-- [ArchiveXL](https://github.com/psiberx/cp2077-archive-xl/releases/)
-- [TweakXL](https://github.com/psiberx/cp2077-tweak-xl/releases/)
-- [Codeware](https://github.com/psiberx/cp2077-codeware/releases/)
-- [Input Loader](https://github.com/jackhumbert/cyberpunk2077-input-loader/releases)
+## Licence et attribution
 
-### Docker
+Distribué sous la [licence CyberpunkMP](LICENSE.md) de **Tilted Phoques SRL**, créateur du logiciel d'origine. Ce n'est pas une licence open source :
 
-To build and run a Docker image of the server 
-1. Follow [build steps 1 to 3](#build)
-2. Build the image with `docker build . -tag cyberpunkmp`
-3. Run it with `docker run -p 11778:11778 cyberpunkmp`
+- toute modification doit rester publique, sous les mêmes termes, avec attribution à Tilted Phoques SRL ;
+- la distribution se fait uniquement via GitHub ou le site du projet, jamais sur une plateforme de mods ;
+- les composants `EmoteSystem`, `JobSystem` et les plugins Redscript d'exemple sont sous licence MIT.
 
-#### Paths you might want to bind
-- **Config**, so you can configure the server.  
-  Example argument: `-v $(pwd)/config:/app/config`
-- **Plugins** if you want to add custom ones.  
-  Example argument: `-v $(pwd)/plugins:/app/plugins`
-
-**NOTE:** If you change the port in the config, don't forget to expose it.
+Projet de fan non officiel, sans lien avec CD PROJEKT RED ni avec Tilted Phoques. Cyberpunk 2077 est une marque de CD PROJEKT S.A. Jouer exige une copie légale du jeu.
