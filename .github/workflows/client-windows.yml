@@ -1,0 +1,81 @@
+name: Client Windows
+
+# Produit la DLL client (CyberpunkMP.dll) et ses assets en artefact.
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  # Dépôts de paquets xmake figés à la date du lock (2024-11-21), comme le
+  # Dockerfile : sans ça, les dépendances non versionnées suivent la dernière
+  # version publiée et cassent le build.
+  XMAKE_REPO_COMMIT: fe18a6cedc7e530c290e8c31db68eddbc87c120e
+  # Chemin court : GameNetworkingSockets embarque des fichiers aux noms très longs.
+  XMAKE_GLOBALDIR: C:/x
+
+jobs:
+  client:
+    runs-on: windows-2022
+    timeout-minutes: 90
+
+    steps:
+      - name: Autoriser les chemins longs
+        run: git config --system core.longpaths true
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: 2.9.9
+
+      - name: Figer les dépôts xmake
+        shell: bash
+        run: |
+          R="$XMAKE_GLOBALDIR/.xmake/repositories"
+          mkdir -p "$R"
+          git clone https://github.com/xmake-io/xmake-repo.git "$R/xmake-repo"
+          git -C "$R/xmake-repo" checkout --quiet "$XMAKE_REPO_COMMIT"
+          git clone --depth=1 https://github.com/xmake-mirror/build-artifacts.git "$R/build-artifacts"
+          touch "$R/xmake-repo/updated" "$R/build-artifacts/updated"
+
+      - name: Cache des paquets xmake
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: client-win-${{ env.XMAKE_REPO_COMMIT }}-${{ hashFiles('xmake.lua', 'code/**/xmake.lua') }}
+          restore-keys: client-win-${{ env.XMAKE_REPO_COMMIT }}-
+
+      - name: Configurer
+        run: xmake f -p windows -a x64 -m release --vs_sdkver=10.0.22621.0 -y
+
+      - name: Compiler le client
+        run: xmake build -y Client
+
+      # Même structure que red4ext/plugins/zzzCyberpunkMP dans le jeu. Les
+      # règles on_install des cibles d'assets ne s'exécutent pas via
+      # « xmake install Client », d'où la copie explicite.
+      - name: Assembler le dossier du mod
+        shell: bash
+        run: |
+          M=distrib/mod
+          mkdir -p $M/assets/{Archives,Inputs,Tweaks}
+          cp build/windows/x64/release/CyberpunkMP.dll $M/
+          cp build/windows/x64/release/CyberpunkMP.pdb $M/ 2>/dev/null || true
+          cp -r code/assets/redscript $M/assets/redscript
+          rm -f $M/assets/redscript/xmake.lua
+          cp code/assets/Archives/packed/archive/pc/mod/CyberpunkMP.archive $M/assets/Archives/
+          cp code/assets/Inputs/CyberpunkMP.xml $M/assets/Inputs/
+          cp code/assets/Tweaks/*.tweak $M/assets/Tweaks/
+          find distrib -type f | sort
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CyberpunkMP-client-${{ github.sha }}
+          path: distrib/mod
+          if-no-files-found: error
