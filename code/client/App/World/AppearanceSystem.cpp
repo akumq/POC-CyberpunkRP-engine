@@ -98,7 +98,10 @@ void AddItems(Red::Handle<Red::game::Object> & object, Red::DynArray<Red::TweakD
         Red::CString placementStr;
         Red::CallStatic("gamedataTDBIDHelper", "ToStringDEBUG", placementStr, placementSlot);
 
-        auto appearanceName = EvalCName(&item_record.instance->appearanceName);
+        // The record's flat, by name: Item_Record's hand-mapped appearanceName field is gone from
+        // the patch 2.5 SDK, and the flat lookup does not depend on the record's layout.
+        Red::CName appearanceName;
+        Red::TweakDB::Get()->TryGetValue(Red::TweakDBID(item, ".appearanceName"), appearanceName);
         std::string appearance = appearanceName.ToString();
         // auto suffixes = EvalArrayTweakDBID(&item_record.instance->appearanceSuffixes);
         // for (auto const suffix : suffixes) {
@@ -165,16 +168,16 @@ void AddItems(Red::Handle<Red::game::Object> & object, Red::DynArray<Red::TweakD
 
 bool AppearanceSystem::ApplyAppearance(Red::Handle<Red::game::Object> object)
 {
-    if (m_playerCcstate.find(object.instance->id) == m_playerCcstate.end()) 
+    if (m_playerCcstate.find(object.instance->entityID) == m_playerCcstate.end()) 
     {
         // not our entity
         return false;
     }
 
-    auto bytes = m_playerCcstate[object.instance->id];
+    auto bytes = m_playerCcstate[object.instance->entityID];
     if (bytes.size() == 0) 
     {
-        spdlog::info("no bytes for {}", object->id.hash);
+        spdlog::info("no bytes for {}", object->entityID.hash);
         return false;
     }
 
@@ -199,7 +202,7 @@ bool AppearanceSystem::ApplyAppearance(Red::Handle<Red::game::Object> object)
     // Red::CallVirtual(this, "AddItems", object);
 
     // c++ method
-    auto items = m_playerEquipment[object.instance->id];
+    auto items = m_playerEquipment[object.instance->entityID];
     // if (stateHandle.instance->isBodyGenderMale) {
     //     // items.PushBack("Items.PlayerMaTppHead");
     //     items.PushBack("Items.MuppetMaHead");
@@ -304,7 +307,7 @@ bool AppearanceSystem::ApplyAppearance(Red::Handle<Red::game::Object> object)
         stateHandle.instance->GetHeadCustomization("TPP", true, keys);
         stateHandle.instance->GetHeadCustomization("face", true, keys);
         stateHandle.instance->GetHeadCustomization("hairs", true, keys);
-        if (stateHandle.instance->isBodyGenderMale) 
+        if (Game::IsBodyGenderMale(stateHandle.instance)) 
         {
             stateHandle.instance->GetHeadCustomization("beards", true, keys);
         }
@@ -332,8 +335,8 @@ bool AppearanceSystem::ApplyAppearance(Red::Handle<Red::game::Object> object)
             .end = nullptr
         };
         Span<Red::world::EntityAppearanceChangeParameter::Key> new_keys = {
-            .start = keys.entries,
-            .end = &keys.entries[keys.size]
+            .start = keys.Data(),
+            .end = keys.Data() + keys.size()
         };
         const std::function<void (void)> callback = [stateHandle = std::move(stateHandle), object = std::move(object)](void) 
         {

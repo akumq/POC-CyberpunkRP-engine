@@ -12,6 +12,28 @@
 
 using namespace Red;
 
+namespace Game
+{
+// The hand-mapped body gender field (isFinalized 41, isNewGame 43, isBodyGenderMale 44, from
+// patch 2.1x). Patch 2.5 grew the state from 0xF0 to 0x110, so it is only a fallback.
+constexpr size_t kIsBodyGenderMaleOffset = 0x44;
+
+// Body gender of a character customization state: the game's own IsBodyGenderMale through RTTI,
+// which does not depend on the layout; the hand-mapped byte only if that function is missing.
+// SelfCheck compares the two.
+inline bool IsBodyGenderMale(game::ui::CharacterCustomizationState* apState)
+{
+    if (!apState)
+        return false;
+
+    bool male = false;
+    if (Red::CallVirtual(apState, "IsBodyGenderMale", male))
+        return male;
+
+    return reinterpret_cast<const uint8_t*>(apState)[kIsBodyGenderMaleOffset] != 0;
+}
+} // namespace Game
+
 constexpr auto CreateHandle_CharacterCustomizationState = Core::RawFunc<2710710832UL, 
     Handle<game::ui::CharacterCustomizationState> * (*)(Handle<game::ui::CharacterCustomizationState> *)>();
 
