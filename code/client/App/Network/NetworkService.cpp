@@ -1,3 +1,4 @@
+#include <RED4ext/Scripting/Natives/entIPlacedComponent.hpp>
 #include "NetworkService.h"
 
 #include "App/World/NetworkWorldSystem.h"
@@ -88,8 +89,8 @@ void NetworkService::HandleAuthentication(const PacketEvent<server::Authenticati
     Red::Handle<Red::GameObject> player;
     system->GetLocalPlayerControlledGameObject(player);
 
-    const auto& cEntityPosition = player->placedComponent->localTransform.Position;
-    const auto cEntityRotation = Game::ToGlm(player->placedComponent->localTransform.Orientation);
+    const auto& cEntityPosition = player->transformComponent->worldTransform.Position;
+    const auto cEntityRotation = Game::ToGlm(player->transformComponent->worldTransform.Orientation);
 
     common::Vector3 pos;
     pos.set_x(cEntityPosition.x);

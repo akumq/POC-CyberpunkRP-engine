@@ -239,7 +239,7 @@ void VehicleSystem::DoMount(flecs::entity aCharacter, Red::EntityID aVehicle, Re
     const auto handle = Red::Handle(this);
     bool res;
 
-    Red::Detail::CallFunctionWithArgs(m_pEnterVehicle, handle, res, character, vehicle->id, aSit);
+    Red::Detail::CallFunctionWithArgs(m_pEnterVehicle, handle, res, character, vehicle->entityID, aSit);
 
     aCharacter.add<AttachedComponent>();
 
@@ -253,9 +253,15 @@ void VehicleSystem::DoMount(flecs::entity aCharacter, Red::EntityID aVehicle, Re
 
         // AttachLocomotionController(component, controller);
         SetIsPlayerControlled(vehicle, false);
-        // turn on engine
-        reinterpret_cast<void (*)(Red::vehicle::WheeledBaseObject*, bool)>(*(uintptr_t*)(*(uintptr_t*)vehicle.instance + 0x328))(vehicle, true);
-        vehicle->engineData->unk61 = 0;
+        // Turning the engine on went through vtable slot 0x328 and a hand-mapped engineData pointer
+        // (0xBA0). Patch 2.5 grew vehicle::BaseObject (0xBA0 -> 0xBC0) and nothing has re-checked the
+        // vtable, and calling the wrong slot is a crash, so it is off until it is verified in game.
+        // Cost: a remote car's engine looks and sounds off.
+        constexpr bool kEngineOnVerifiedFor25 = false;
+        if constexpr (kEngineOnVerifiedFor25)
+        {
+            reinterpret_cast<void (*)(Red::vehicle::WheeledBaseObject*, bool)>(*(uintptr_t*)(*(uintptr_t*)vehicle.instance + 0x328))(vehicle, true);
+        }
         SetFlags(vehicle, 0x10);
         SetFlags(vehicle, 0x80);
         SetKinematic(vehicle, true);
