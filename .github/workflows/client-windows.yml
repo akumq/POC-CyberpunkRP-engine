@@ -13,7 +13,8 @@ env:
   # Dockerfile : sans ça, les dépendances non versionnées suivent la dernière
   # version publiée et cassent le build.
   XMAKE_REPO_COMMIT: fe18a6cedc7e530c290e8c31db68eddbc87c120e
-  XMAKE_GLOBALDIR: ${{ github.workspace }}/.xmake-global
+  # Chemin court : GameNetworkingSockets embarque des fichiers aux noms très longs.
+  XMAKE_GLOBALDIR: C:/x
 
 jobs:
   client:
@@ -21,6 +22,9 @@ jobs:
     timeout-minutes: 90
 
     steps:
+      - name: Autoriser les chemins longs
+        run: git config --system core.longpaths true
+
       - uses: actions/checkout@v4
         with:
           submodules: recursive
