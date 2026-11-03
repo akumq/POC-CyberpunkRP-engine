@@ -4,6 +4,7 @@
 #include "win32.h"
 #include "App/Application.h"
 #include "App/Debugging/DebugService.h"
+#include "App/Settings.h"
 
 namespace App
 {
@@ -117,6 +118,9 @@ void ImGuiService::OnRenderInit()
             // do this once, do not repeat context creation!
             IMGUI_CHECKVERSION();
             ImGui::CreateContext();
+            // ImGui ne touche jamais au curseur : il répondait à WM_SETCURSOR à chaque image,
+            // et sous Proton un curseur visible fait perdre la capture de la souris (caméra figée).
+            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
             // TODO - make this configurable eventually and overridable by mods for themselves easily
             // setup CET default style
@@ -275,8 +279,9 @@ void ImGuiService::PrepareUpdate()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    // r
-    Core::Container::Get<DebugService>()->Draw();
+    // Menu de développement seulement sur demande : il s'affichait chez tous les joueurs.
+    if (Settings::Get().DebugUi)
+        Core::Container::Get<DebugService>()->Draw();
   
     ImGui::Render();
 
