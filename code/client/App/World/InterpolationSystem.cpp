@@ -213,7 +213,7 @@ void HookIdleController_SetAnimation(Game::Controller* apController, AnimationDa
     Game::EntityPtr entity(pMoveComponent);
     if (const auto pOwner = Red::Cast<Red::GameObject>(entity.GetValuePtr()))
     {
-        if (pOwner->tags.Contains("CyberpunkMP.Puppet"))
+        if (pOwner->tags.Contains(Red::CName("CyberpunkMP.Puppet")))
         {
             if (apController->m_type == MultiMovementController::kMulti)
                 return;
