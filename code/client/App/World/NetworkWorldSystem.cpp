@@ -338,7 +338,24 @@ void NetworkWorldSystem::UpdatePlayerLocation() const
     {
         const auto cEntityPosition = puppet->transformComponent->worldTransform.Position;
         const auto cEntityRotation = eulerAngles(Game::ToGlm(puppet->transformComponent->worldTransform.Orientation));
-        float speed = puppet->moveComponent->speed.Magnitude();
+        // Speed from the distance covered since the last report (Night City Online): the patch 2.5
+        // SDK no longer maps the puppet's moveComponent, and its hand-mapped speed read garbage
+        // on 2.31 already.
+        static glm::vec3 s_lastPosition{};
+        static uint64_t s_lastTick = 0;
+        const glm::vec3 position{cEntityPosition.x, cEntityPosition.y, cEntityPosition.z};
+        const auto tick = GetTick();
+        float speed = 0.f;
+        if (s_lastTick != 0 && tick > s_lastTick)
+        {
+            speed = glm::distance(position, s_lastPosition) / (static_cast<float>(tick - s_lastTick) / 1000.f);
+            // A teleport or a loading screen is not a sprint.
+            constexpr float kFastestPlausible = 20.f;
+            if (speed > kFastestPlausible)
+                speed = 0.f;
+        }
+        s_lastPosition = position;
+        s_lastTick = tick;
 
         common::Vector3 pos;
         pos.set_x(cEntityPosition.x);
