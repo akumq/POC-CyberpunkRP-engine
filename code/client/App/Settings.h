@@ -23,6 +23,8 @@ struct Settings
     Vector<fs::path> mods = {};
     bool enabled = false;
     bool RpcOnly = false;
+    // --debug-ui : menu ImGui de développement (« Test » → « Connect »).
+    bool DebugUi = false;
     fs::path RpcPath{};
 
 private:
