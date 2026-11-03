@@ -57,15 +57,25 @@ jobs:
       - name: Compiler le client
         run: xmake build -y Client
 
+      # Même structure que red4ext/plugins/zzzCyberpunkMP dans le jeu. Les
+      # règles on_install des cibles d'assets ne s'exécutent pas via
+      # « xmake install Client », d'où la copie explicite.
       - name: Assembler le dossier du mod
-        run: xmake install -y -o distrib Client
-
-      - name: Lister le résultat
         shell: bash
-        run: find distrib -type f | sort
+        run: |
+          M=distrib/mod
+          mkdir -p $M/assets/{Archives,Inputs,Tweaks}
+          cp build/windows/x64/release/CyberpunkMP.dll $M/
+          cp build/windows/x64/release/CyberpunkMP.pdb $M/ 2>/dev/null || true
+          cp -r code/assets/redscript $M/assets/redscript
+          rm -f $M/assets/redscript/xmake.lua
+          cp code/assets/Archives/packed/archive/pc/mod/CyberpunkMP.archive $M/assets/Archives/
+          cp code/assets/Inputs/CyberpunkMP.xml $M/assets/Inputs/
+          cp code/assets/Tweaks/*.tweak $M/assets/Tweaks/
+          find distrib -type f | sort
 
       - uses: actions/upload-artifact@v4
         with:
           name: CyberpunkMP-client-${{ github.sha }}
-          path: distrib/launcher/mod
+          path: distrib/mod
           if-no-files-found: error
